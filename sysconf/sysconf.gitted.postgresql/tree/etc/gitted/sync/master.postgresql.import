@@ -1,0 +1,15 @@
+#!/bin/bash
+#
+# Import script for gitted /repository.local.git, branch "master"
+#
+# This script is responsible for updating the system according to
+# the new state of the Git branch.
+#
+
+export GITTED_POSTGRESQL_DATA_PATH=postgresql
+export GITTED_POSTGRESQL_DATABASE=postgresql
+
+[ -r /etc/gitted/sync/defs ] && . /etc/gitted/sync/defs
+
+GITTED_DATA_PATH=$GITTED_POSTGRESQL_DATA_PATH \
+    /usr/share/gitted/import/postgresql
