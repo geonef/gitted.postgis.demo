@@ -1,0 +1,14 @@
+#!/bin/bash
+#
+# Import script for gitted /repository.local.git, branch "master"
+#
+# This script is responsible for updating the system according to
+# the new state of the Git branch.
+#
+
+. /usr/share/nef-common/shell-command
+
+for script in /etc/gitted/sync/master.*.import; do
+    name=$(basename $script)
+    $script 2>&1 | nef_log_pipe "<$name>"
+done

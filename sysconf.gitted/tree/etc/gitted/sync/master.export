@@ -1,0 +1,14 @@
+#!/bin/bash
+#
+# Export script for gitted /repository.local.git, branch "master"
+#
+# This script is responsible for making Git commits and updating branch refs
+# to reflect the new state of the system, if that has changed.
+#
+
+. /usr/share/nef-common/shell-command
+
+for script in /etc/gitted/sync/master.*.export; do
+    name=$(basename $script)
+    $script 2>&1 | nef_log_pipe "<$name>"
+done
