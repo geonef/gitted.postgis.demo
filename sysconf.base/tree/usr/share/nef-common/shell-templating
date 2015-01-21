@@ -1,0 +1,50 @@
+
+# BASH utilities for scripted commands               -*- shell-script -*-
+# $NEF_DIR_USER/usr/share/nef-common/shell-command
+#
+# Part of SYSCONF profile "sysconf.base"
+# https://github.com/geonef/sysconf.base
+#
+#
+# HISTORY
+#   20140707 Migrated from common.sh
+#
+# AUTHORS
+#   JF Gigand <jf@gigand.fr>
+#
+# EXAMPLE
+#   #!/bin/bash
+#   # this is an example of use of nef util shell-command
+#
+#   [ "x$NEF_DIR_USR" = x ] && NEF_DIR_USR=/usr
+#   . $NEF_DIR_USR/share/nef-common/shell-command
+#
+
+
+# usage: nef_template_apply_file TEMPLATE_PATH
+nef_template_apply_file()
+{
+    template=`cat "$1"`
+    templateEscaped=$(echo "$template" | sed 's/"/\\"/g')
+    eval "echo \"$templateEscaped\""
+}
+
+
+# Search file for occurence of the "-NEF-SHELL-EVAL-" token, and eval what follows
+#
+# Exemple in:
+# /etc/cloud-nef/primary/lxc/http-front-n4-primary-cn.template.conf
+nef_shell_eval_file()
+{
+    token="-NEF-SHELL-EVAL-"
+    OLD_IFS="$IFS"
+ IFS="
+"
+
+    lines=($(cat $1 | grep -- "$token" | sed "s/.*-NEF-SHELL-EVAL-//"))
+    IFS="$OLD_IFS"
+
+    for line in "${lines[@]}"; do
+        eval $line
+    done
+}
