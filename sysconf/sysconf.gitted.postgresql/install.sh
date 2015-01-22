@@ -17,12 +17,15 @@ _packages="$_packages postgresql-9.3"
 sysconf_require_packages $_packages
 
 
-local _pg_config=/etc/postgresql/9.3/main/postgresql.conf
-if [ ! -h $_pg_config ]; then
-    rm -f $_pg_config
-    echo "Setting symlink for: $_pg_config"
-    ln -s ../../../postgresql-common/postgresql.conf $_pg_config
-    service postgresql restart
-    # postgres / postgres
-    echo "ALTER ROLE postgres ENCRYPTED PASSWORD 'md53175bce1d3201d16594cebf9d7eb3f9d'" | sudo -u postgres psql
-fi
+for file in postgresql.conf environment; do
+    local _pg_config=/etc/postgresql/9.3/main/$file
+    if [ ! -h $_pg_config ]; then
+        rm -f $_pg_config
+        echo "Setting symlink for: $_pg_config"
+        ln -s ../../../postgresql-common/postgresql.conf $_pg_config
+    fi
+done
+
+service postgresql restart
+# postgres / postgres
+echo "ALTER ROLE postgres ENCRYPTED PASSWORD 'md53175bce1d3201d16594cebf9d7eb3f9d'" | sudo -u postgres psql
