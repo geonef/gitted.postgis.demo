@@ -66,6 +66,7 @@ $$
 LANGUAGE plpgsql STABLE SECURITY DEFINER;
 
 
+
 --
 -- PostgreSQL database dump complete
 --
