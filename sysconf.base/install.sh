@@ -1,5 +1,7 @@
 # sysconf install script for conf: "base"
 
+# Previously sourced: ../sysconf.base/tree/usr/share/nef-common/shell-command
+
 
 
 ######################################################################

@@ -46,8 +46,9 @@ Where <command> is one of:
 	Move given (real) files to CONFIG's tree and replace them with a symlink.
 	This is a frequently used command as we move/"standardize" config/misc
 	files from real location (like /etc) to a sysconf repository.
-	
-	Use the '-c' option to specify the sysconf profile to use.
+
+	Use the '-c' option to specify the sysconf profile to use
+        (default to 'actual').
 
     cmd command [command_args]
 	Execute given command in CONFIG's dir and recursive dep dirs.
@@ -60,7 +61,7 @@ Options are:
     -c CONFIG
         Use given configuration. Defaults to 'actual', which is usually a symlink
         to the root configuration initialized with the command 'init'.
-        
+
         Most often used with the 'add' command. Exemple:
         # sysconf add -c sysconf.x /etc/some/file
 
@@ -126,80 +127,7 @@ reinit_compiled_dir()
     mkdir $compiled
 }
 
-# Used by commands "init" and "setup"
-init_sysconf()
-{
-    repos="$1"
-    [ "$repos" = "" ] && {
-	show_usage
-	exit -1
-    }
-
-    name=`echo "$repos" | sed 's/.*[:/]//' | sed 's/\.git$//'`
-    repos_base=`echo "$repos" | sed -E 's/(.*[:/]).*$/\1/'`
-    nef_log "*** Initializing $confpath with GIT repository: $repos"
-    nef_log "*** repos_base=$repos_base repository=$name"
-
-    chdir_confpath
-    echo $repos_base >repository_base
-
-    if test -h actual; then
-        # Legacy: "actual" as a symlink
-        rm actual
-        ln -s $name actual
-        nef_log "Updated symlink 'actual' to point to: $name"
-    elif test -d actual; then
-        nef_log "'./actual' exists already, that's fine"
-    else
-        mkdir actual
-        echo $name >actual/deps
-    fi
-
-    fetch_conf "$name" # "$repos_base"
-}
-
-# function usage: fetch_conf CONFIG [REPOSITORY_BASE]
-fetch_conf()
-{
-    local config="$1"
-    chdir_confpath
-
-    [ -d $config ] && {
-	cd $config
-        if test -d .git; then
-            nef_log "*** Updating $confpath/$config"
-	    safe_git pull
-        else
-            nef_log "*** Not a git repository (but it's okay): $confpath/$config"
-        fi
-    } || {
-	# repos_base="$2"
-	# [ "$repos_base" = "" ] && {
-	#     cd actual
-	#     repos=`git remote show origin | grep Fetch | sed 's/  Fetch URL: //'`
-	#     repos_base=`dirname $repos`
-	#     cd -
-	# }
-        repos_base=$(cat $confpath/repository_base)
-	repos_path=${repos_base}${config}.git
-	nef_log "*** Installing $confpath/$config from repository $repos_path"
-	safe_git clone $repos_path
-	cd $config
-    }
-
-    if test -d .git; then
-        safe_git submodule init
-        safe_git submodule update --recursive
-    fi
-
-    cd $confpath
-
-    for dep in `cat $config/deps`; do
-	fetch_conf $dep
-    done
-}
-
-# function usage: fetch_conf CONFIG [REPOSITORY_BASE]
+# function usage: compile_conf CONFIG [REPOSITORY_BASE]
 compile_conf()
 {
     (
@@ -212,7 +140,7 @@ compile_conf()
     )
 }
 
-# function usage: fetch_conf CONFIG [REPOSITORY_BASE]
+# function usage: compile_conf_rec CONFIG [REPOSITORY_BASE]
 compile_conf_rec()
 {
     local config="$1"
@@ -241,17 +169,46 @@ install_compiled()
     local_cp -r $confpath/compiled/* / || nef_fatal "copy failed"
 }
 
+load_environment()
+{
+        sysconf_loaded_confs=()
+        load_environment_for_conf_rec actual
+}
+load_environment_for_conf_rec()
+{
+    local config="$1"
+    chdir_confpath
+
+    for conf in "${sysconf_loaded_confs[@]}"; do
+        [ "$config" = "$conf" ] && return
+    done
+    sysconf_loaded_confs=(${sysconf_loaded_confs[@]} $config)
+
+    for dep in `cat $config/deps`; do
+	load_environment_for_conf_rec $dep
+    done
+
+    cd $confpath/$config || nef_fatal "missing directory (or mispelled dep): $config"
+
+    if [ -r environment.rc ]; then
+	nef_log -v "Loading environment: $config"
+        . environment.rc
+    else
+	nef_log -v "Environment not defined: $config"
+    fi
+}
+
 update_system_from_conf()
 {
     (
         # 'sysconf_updated_confs' contains the names of the confs
         # that have been compiled already, to avoid some deps
         # to be processed multiple times
+        # (and protect against infinite loop)
         sysconf_updated_confs=()
         update_system_from_conf_rec "$@"
     )
 }
-
 update_system_from_conf_rec()
 {
     local config="$1"
@@ -476,21 +433,7 @@ while [ "$1" != "" ]; do
     # nef_log -v "*** COMMAND: $command"
 
     case "$command" in
-    	# TO REMOVE
-        init)
-            nef_read_args "$@"
-            shift $((OPTIND-1))
 
-	    init_sysconf "$1"
-            shift
-            ;;
-    	# TO REMOVE
-        fetch)
-            nef_read_args "$@"
-            shift $((OPTIND-1))
-
-	    fetch_conf "$config"
-	    ;;
         compile)
             nef_read_args "$@"
             shift $((OPTIND-1))
@@ -498,46 +441,22 @@ while [ "$1" != "" ]; do
 	    reinit_compiled_dir
 	    compile_conf "$config"
 	    ;;
+
         install)
             nef_read_args "$@"
             shift $((OPTIND-1))
 
 	    install_compiled
 	    ;;
+
         update)
             nef_read_args "$@"
             shift $((OPTIND-1))
 
+            load_environment
 	    update_system_from_conf "$config"
 	    ;;
-    	# TO REMOVE
-        pull)
-            nef_read_args "$@"
-            shift $((OPTIND-1))
 
-	    fetch_conf "$config"
-	    reinit_compiled_dir
-	    compile_conf "$config"
-	    install_compiled
-	    update_system_from_conf "$config"
-	    ;;
-    	# TO REMOVE
-        setup)
-            nef_read_args "$@"
-            shift $((OPTIND-1))
-            url="$1"
-            shift
-
-	    init_sysconf "$url" && {
-	        setup_config=`readlink $confpath/actual`
-	        nef_log "setup: working on conf: $setup_config"
-
-	        reinit_compiled_dir && \
-		    compile_conf "$setup_config" && \
-		    install_compiled && \
-		    nef_log "setup: done"
-	    }
-	    ;;
         add)
             nef_read_args "$@"
             shift $((OPTIND-1))
@@ -547,6 +466,7 @@ while [ "$1" != "" ]; do
 	        shift
 	    done
 	    ;;
+
         cmd)
             nef_read_args "$@"
             shift $((OPTIND-1))
@@ -557,6 +477,7 @@ while [ "$1" != "" ]; do
 	    run_cmd "$config" "$command" "$@"
             shift $#
 	    ;;
+
         list)
             nef_read_args "$@"
             shift $((OPTIND-1))
@@ -571,9 +492,11 @@ while [ "$1" != "" ]; do
                 $command | grep "$filter"
             fi
             ;;
+
         help)
 	    show_usage
 	    ;;
+
         *)
             nef_log "bad command: '$command'"
 	    show_usage
