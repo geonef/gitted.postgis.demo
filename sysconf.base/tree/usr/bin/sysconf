@@ -75,7 +75,7 @@ Typical conf repository include:
         Just bare names, will be append to our repository path's basedir
         to form the path of dep repository.
 
-    /install.sh
+    /setup.rc
         Script executed for installing/updating the conf on target dir.
 
 More help on project website: https://github.com/geonef/sysconf.base
@@ -225,12 +225,21 @@ update_system_from_conf_rec()
 
     cd $confpath/$config || nef_fatal "missing directory (or mispelled dep): $config"
 
-    [ -r ./install.sh ] && {
+    [ -r install.sh ] && {
 	nef_log "Executing updates for config: $config"
+        nef_log "WARNING: OBSOLETE: install.sh should be renamed to setup.rc"
         (
             NEF_LOG_PREFIX="$nef_command_name: $config"
             . /usr/share/nef-common/shell-command || exit 2
-            . ./install.sh 2>&1 | nef_log_pipe
+            . install.sh 2>&1 | nef_log_pipe
+        )
+    }
+    [ -r setup.rc ] && {
+	nef_log "Setting-up profile: $config"
+        (
+            NEF_LOG_PREFIX="$nef_command_name: $config"
+            . /usr/share/nef-common/shell-command || exit 2
+            . setup.rc 2>&1 | nef_log_pipe
         )
     }
 }
