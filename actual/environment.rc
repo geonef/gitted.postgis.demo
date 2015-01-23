@@ -1,0 +1,4 @@
+# Environment for sysconf "actual"  -*- shell-script -*-
+
+# Any variable defined in other ../sysconf.*/environment.rc
+# can be overloaded here.

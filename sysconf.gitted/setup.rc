@@ -1,6 +1,7 @@
 # Installer script for sysconf "sysconf.gitted"  -*- shell-script -*-
 
-. /usr/lib/sysconf.base/common.sh
+# Previously sourced: ../sysconf.base/tree/usr/share/nef-common/shell-command
+
 
 # Fix /etc/host with our hostname
 # (and avoid Apache's "apr_sockaddr_info_get() failed" error)

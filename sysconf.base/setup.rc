@@ -1,4 +1,6 @@
-# sysconf install script for conf: "base"
+# Setup script for sysconf "sysconf.base"        -*- shell-script -*-
+
+# Previously sourced: ../sysconf.base/tree/usr/share/nef-common/shell-command
 
 
 
