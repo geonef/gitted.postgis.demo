@@ -10,46 +10,42 @@ SET check_function_bodies = false;
 SET client_min_messages = warning;
 
 --
--- Name: plpgsql; Type: EXTENSION; Schema: -; Owner:
+-- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
 --
 
 CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 
 
 --
--- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner:
+-- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: 
 --
 
 COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
 
 
 --
--- Name: postgis; Type: EXTENSION; Schema: -; Owner:
+-- Name: postgis; Type: EXTENSION; Schema: -; Owner: 
 --
 
 CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;
 
 
 --
--- Name: EXTENSION postgis; Type: COMMENT; Schema: -; Owner:
+-- Name: EXTENSION postgis; Type: COMMENT; Schema: -; Owner: 
 --
 
 COMMENT ON EXTENSION postgis IS 'PostGIS geometry, geography, and raster spatial types and functions';
 
 
+SET search_path = public, pg_catalog;
+
 --
--- Name: public; Type: ACL; Schema: -; Owner: postgres
+-- Name: postgis_viewer_image(text, text, integer[]); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-REVOKE ALL ON SCHEMA public FROM PUBLIC;
-REVOKE ALL ON SCHEMA public FROM postgres;
-GRANT ALL ON SCHEMA public TO postgres;
-GRANT ALL ON SCHEMA public TO PUBLIC;
-
-
--- verson 0.3 --
-CREATE OR REPLACE FUNCTION postgis_viewer_image(IN param_sql text, IN param_spatial_type text DEFAULT 'geometry', IN param_rgb integer[] DEFAULT null::integer[] ) RETURNS bytea AS
-$$
+CREATE FUNCTION postgis_viewer_image(param_sql text, param_spatial_type text DEFAULT 'geometry'::text, param_rgb integer[] DEFAULT NULL::integer[]) RETURNS bytea
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    AS $_$
   DECLARE var_result bytea;
   DECLARE var_bandtypes text[] := ARRAY['8BUI', '8BUI', '8BUI'];
   BEGIN
@@ -62,11 +58,22 @@ $$
       END IF;
       RETURN var_result;
  END
-$$
-LANGUAGE plpgsql STABLE SECURITY DEFINER;
+$_$;
 
+
+ALTER FUNCTION public.postgis_viewer_image(param_sql text, param_spatial_type text, param_rgb integer[]) OWNER TO postgres;
+
+--
+-- Name: public; Type: ACL; Schema: -; Owner: postgres
+--
+
+REVOKE ALL ON SCHEMA public FROM PUBLIC;
+REVOKE ALL ON SCHEMA public FROM postgres;
+GRANT ALL ON SCHEMA public TO postgres;
+GRANT ALL ON SCHEMA public TO PUBLIC;
 
 
 --
 -- PostgreSQL database dump complete
 --
+
